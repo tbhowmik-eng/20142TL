@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RUC-CERS Prototype – Communication Effectiveness & Risk Simulator (NCHRP 20-142)</title>
+  <style>
+    :root{
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --text:#10243a;
+      --muted:#52627a;
+      --border:#dbe3f0;
+      --accent:#1d4ed8;
+      --chip:#eef3ff;
+      --good:#0f766e;
+      --warn:#b45309;
+      --bad:#b91c1c;
+      --shadow: 0 8px 24px rgba(16,36,58,.08);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:18px;
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      line-height:1.35;
+    }
+    header{
+      display:flex; gap:14px; align-items:flex-start; justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .title{ display:flex; flex-direction:column; gap:4px; }
+    h1{ margin:0; font-size:1.35rem; letter-spacing:.2px; }
+    .subtitle{ color:var(--muted); font-size:.95rem; max-width: 1100px; }
+    .top-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    button, .btn{
+      border:1px solid var(--border);
+      background:var(--card);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      color:var(--text);
+      box-shadow: 0 2px 10px rgba(16,36,58,.05);
+    }
+    button:hover{ border-color:#c9d4e8; }
+    .btn.primary{
+      background: var(--accent);
+      border-color: var(--accent);
+      color:white;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 600px minmax(480px, 1fr);
+      grid-template-columns: 38% 62%;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 1200px){ .layout{ grid-template-columns: 1fr; } }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .card h2{ margin:0 0 10px 0; font-size:1.05rem; }
+    .muted{ color:var(--muted); }
+    .small{ font-size:.92rem; }
+
+    label{
+      font-size:.9rem;
+      font-weight:800;
+      color:#18314a;
+      display:block;
+      margin-bottom:6px;
+    }
+    select, input[type="range"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#fbfdff;
+      color:var(--text);
+      outline:none;
+    }
+    select:focus, input[type="range"]:focus{
+      border-color:#a9bce5;
+      box-shadow: 0 0 0 3px rgba(29,78,216,.12);
+    }
+
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .row.single{ grid-template-columns: 1fr; }
+    .controls{ display:flex; flex-direction:column; gap:10px; }
+
+    .help{
+      background:#f9fbff;
+      border:1px dashed #cfe0ff;
+      border-radius:14px;
+      padding:10px;
+      color:#23466e;
+      font-size:.9rem;
+    }
+    .help code{
+      font-family:var(--mono);
+      font-size:.85rem;
+      background:#eef3ff;
+      border:1px solid #d6e2ff;
+      padding:1px 6px;
+      border-radius:8px;
+    }
+
+    .chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .chip{
+      background:var(--chip);
+      border:1px solid #d6e2ff;
+      padding:5px 8px;
+      border-radius:999px;
+      font-size:.82rem;
+      color:#173b7a;
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+    }
+    .chip b{ font-family:var(--mono); font-size:.78rem; color:#0f2f66; }
+
+    .kpi-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 900px){
+      .kpi-grid{ grid-template-columns: 1fr; }
+    }
+    .kpi{
+      border:1px solid var(--border);
+      background:#fbfdff;
+      border-radius:14px;
+      padding:10px;
+    }
+    .kpi .num{ font-size:1.35rem; font-weight:900; }
+    .kpi .lbl{ color:var(--muted); font-size:.85rem; margin-top:2px; }
+    .kpi .ci{ color:var(--muted); font-size:.82rem; margin-top:6px; }
+
+    .pill{
+      display:inline-flex;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fbfdff;
+      font-size:.8rem;
+      color:#1a3b62;
+      margin:2px 6px 0 0;
+      white-space:nowrap;
+    }
+    .pill.good{ border-color: rgba(15,118,110,.35); color: var(--good); background: rgba(15,118,110,.06); }
+    .pill.warn{ border-color: rgba(180,83,9,.35); color: var(--warn); background: rgba(180,83,9,.06); }
+    .pill.bad{ border-color: rgba(185,28,28,.35); color: var(--bad); background: rgba(185,28,28,.06); }
+
+    .section-title{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-top:8px;
+    }
+    .section-title h3{ margin:0; font-size:1rem; }
+    .mini{ font-size:.86rem; color:var(--muted); }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 900px){ .grid2{ grid-template-columns: 1fr; } }
+
+    .box{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px;
+      background:#fbfdff;
+    }
+    .box h3{ margin:0 0 8px 0; font-size:.95rem; }
+    .box p{ margin:0; color:var(--muted); font-size:.9rem; }
+    .mono{ font-family:var(--mono); }
+
+    .rec{
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .rec-item{
+      border:1px solid var(--border);
+      background:#ffffff;
+      border-radius:14px;
+      padding:10px;
+    }
+    .rec-item b{ display:block; margin-bottom:4px; }
+    .rec-item .muted{ font-size:.9rem; }
+
+    .toast{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      background:#10243a;
+      color:white;
+      padding:10px 12px;
+      border-radius:12px;
+      box-shadow: var(--shadow);
+      display:none;
+      font-size:.92rem;
+      max-width: 520px;
+    }
+    .toast.show{ display:block; }
+
+    .bar{
+      height:10px;
+      background:#e9eef9;
+      border:1px solid var(--border);
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:8px;
+    }
+    .bar > div{
+      height:100%;
+      width:0%;
+      background: var(--accent);
+    }
+
+    /* Flyer preview */
+    .preview{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+.preview-img{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#ffffff;
+  max-height:700px;   /* increase height */
+  overflow:auto;      /* allow scroll if tall */
+}
+    .preview-img img{
+      width:100%;
+      height:auto;
+      display:block;
+    }
+    .preview-meta{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    /* Comparison table */
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:white;
+      table-layout: fixed;
+    }
+    thead th{
+      background:#f2f6ff;
+      color:#143151;
+      text-align:left;
+      padding:8px 8px;
+      font-size:.82rem;
+      border-bottom:1px solid var(--border);
+      white-space:nowrap;
+    }
+    tbody td{
+      padding:8px 8px;
+      border-bottom:1px solid #eef2fa;
+      vertical-align:top;
+      font-size:.86rem;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
+    tbody tr:hover td{ background:#fbfdff; }
+    .clickable{
+      color: var(--accent);
+      font-weight:800;
+      cursor:pointer;
+      text-decoration:none;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="title">
+      <h1>RUC-CERS Prototype</h1>
+<div class="subtitle">
+  A decision-support simulator designed to help agencies evaluate the likely effectiveness of RUC communication strategies.<br><br>
+  The tool generates predicted probabilities of understanding, trust, and support under different scenarios, and identifies potential risks with recommended mitigation actions.<br><br>
+  <span class="muted">Prototype outputs are illustrative; Phase II will incorporate estimated model parameters.</span>
+</div>
+    </div>
+    <div class="top-actions">
+      <button id="btnReset" title="Reset selections">Reset</button>
+      <button id="btnCopyScenario" class="btn" title="Copy scenario summary to clipboard">Copy Scenario</button>
+      <button id="btnCopyOutputs" class="btn primary" title="Copy outputs (probabilities + risks + mitigations) to clipboard">Copy Outputs</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT: Inputs -->
+    <aside class="card">
+      <h2>Scenario Builder</h2>
+
+      <div class="controls">
+        <div class="row">
+          <div>
+            <label for="state">State</label>
+            <select id="state"></select>
+          </div>
+          <div>
+            <label for="region">Region</label>
+            <select id="region"></select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="stage">RUC stage</label>
+            <select id="stage"></select>
+          </div>
+          <div>
+            <label for="context">Community context</label>
+            <select id="context"></select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="audience">Stakeholder / audience</label>
+            <select id="audience"></select>
+          </div>
+          <div>
+            <label for="capacity">Agency capacity</label>
+            <select id="capacity"></select>
+          </div>
+        </div>
+
+        <div class="row single">
+          <div>
+            <label for="mechanism">Communication mechanism (includes Flyer A/B/C)</label>
+            <select id="mechanism"></select>
+          </div>
+        </div>
+
+        <!-- Flyer preview (appears for Flyer A/B/C) -->
+        <div class="box" id="flyerPreviewBox" style="display:none">
+          <h3>Selected material preview</h3>
+          <div class="preview">
+            <div class="preview-img">
+              <img id="flyerImg" alt="Selected flyer preview" />
+            </div>
+            <div class="preview-meta" id="flyerMeta"></div>
+            <div class="muted small" id="flyerNote"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="frame">Primary message emphasis</label>
+            <select id="frame"></select>
+          </div>
+          <div>
+            <label for="privacyStyle">Privacy explanation style</label>
+            <select id="privacyStyle"></select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="politics">Political climate</label>
+            <select id="politics"></select>
+          </div>
+          <div>
+            <label for="evShare">EV salience</label>
+            <select id="evShare"></select>
+          </div>
+        </div>
+
+        <div class="row single">
+          <div>
+            <label for="baselineTrust">Baseline trust in agency (0–100)</label>
+            <input id="baselineTrust" type="range" min="0" max="100" value="55" />
+            <div class="mini">Value: <span class="mono" id="baselineTrustVal">55</span></div>
+          </div>
+        </div>
+
+        <!-- Optional helper box (kept empty, but markup fixed) -->
+        <div class="help" style="display:none"></div>
+
+        <div>
+          <div class="section-title">
+          </div>
+          <div class="chips" id="scenarioChips"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: Outputs -->
+    <main class="card">
+      <div class="section-title">
+        <h2 style="margin:0">Predicted outcomes</h2>
+        <div class="mini">prototype model (placeholder)</div>
+      </div>
+
+      <div class="kpi-grid" style="margin-top:10px">
+        <div class="kpi">
+          <div class="num" id="pUnderstand">—</div>
+          <div class="lbl">P(Clear understanding)</div>
+          <div class="bar"><div id="barUnderstand"></div></div>
+          <div class="ci" id="ciUnderstand">CI: —</div>
+        </div>
+        <div class="kpi">
+          <div class="num" id="pTrust">—</div>
+          <div class="lbl">P(Trust / comfort)</div>
+          <div class="bar"><div id="barTrust"></div></div>
+          <div class="ci" id="ciTrust">CI: —</div>
+        </div>
+        <div class="kpi">
+          <div class="num" id="pSupport">—</div>
+          <div class="lbl">P(Support / participate)</div>
+          <div class="bar"><div id="barSupport"></div></div>
+          <div class="ci" id="ciSupport">CI: —</div>
+        </div>
+      </div>
+
+      <!-- Comparison table (ALWAYS SHOWN) -->
+      <div class="box" id="compareBox" style="margin-top:12px;">
+        <div class="section-title" style="margin-top:0">
+        </div>
+        <div class="muted small" style="margin:6px 0 10px 0">
+          This table shows the “adoption rate by mechanism” (Flyer/Brochure/FAQ/Video/etc.) by showing predicted probabilities under identical context.
+        </div>
+        <table aria-label="Mechanism comparison table">
+          <thead>
+            <tr>
+              <th style="width:32%">Mechanism</th>
+              <th style="width:14%">P(Understand)</th>
+              <th style="width:14%">P(Trust)</th>
+              <th style="width:14%">P(Support)</th>
+              <th style="width:14%">Risk level</th>
+              <th style="width:12%">Top driver</th>
+            </tr>
+          </thead>
+          <tbody id="compareTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="box">
+          <h3>Risk profile</h3>
+          <div style="margin-bottom:8px">
+            <span class="pill" id="riskOverallPill">—</span>
+            <span class="pill" id="riskDriverPill">—</span>
+          </div>
+          <p class="muted">Key risks flagged based on predicted “concern persistence” probabilities.</p>
+          <div style="margin-top:10px" id="riskList"></div>
+        </div>
+
+        <div class="box">
+          <h3>Recommended mitigations</h3>
+          <p class="muted">Actionable steps aligned with toolkit modules (myth-busting, sequencing, interagency coordination).</p>
+          <div class="rec" style="margin-top:10px" id="mitigationList"></div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="box">
+          <h3>Suggested evaluation measures</h3>
+          <p class="muted">Measures that an agency can use to evaluate communication effectiveness for this scenario.</p>
+          <div style="margin-top:10px" id="evalMeasures"></div>
+        </div>
+
+        <div class="box">
+          <h3>Example survey questions</h3>
+          <p class="muted">Draft items to gather feedback from the selected audience in this context.</p>
+          <div style="margin-top:10px" id="surveyQs"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ---------------------------
+   MEDIA CONFIG (PUT YOUR FLYERS HERE)
+   Place the flyer image files in the SAME folder as this HTML, with these names:
+   - Flyer.png
+   - Flyer 2.png
+   - Flyer 3.png
+   Or change the paths below to whatever you use.
+---------------------------- */
+const MEDIA = {
+  flyers: {
+    "Flyer A – Problem → Solution (funding decline)": {
+      src: "Flyer.png",
+      tags: ["Sustainability", "Problem–solution", "Revenue decline", "Core definition"],
+      note: "Strong ‘why change’ framing. Best used early-stage; may require additional reassurance in skeptical contexts."
+    },
+    "Flyer B – Road Ahead (transition roadmap)": {
+      src: "Flyer 2.png",
+      tags: ["Modernization", "Transition", "Implementation pillars", "Privacy"],
+      note: "Balanced transition narrative; good for explaining the pathway and options."
+    },
+    "Flyer C – How Mileage is Reported (mechanics)": {
+      src: "Flyer 3.png",
+      tags: ["Clarity", "Reporting options", "Privacy protections", "How-it-works"],
+    }
+  }
+};
+
+// Regions + states (simple mapping for prototype)
+const REGIONS = [
+  {name:"Northeast", states:["CT","ME","MA","NH","RI","VT","NJ","NY","PA"]},
+  {name:"Midwest", states:["IL","IN","MI","OH","WI","IA","KS","MN","MO","NE","ND","SD"]},
+  {name:"South", states:["DE","FL","GA","MD","NC","SC","VA","DC","WV","AL","KY","MS","TN","AR","LA","OK","TX"]},
+  {name:"West", states:["AZ","CO","ID","MT","NV","NM","UT","WY","AK","CA","HI","OR","WA"]}
+];
+
+// Scenario dropdown options
+const OPT = {
+  stage: ["Research","Pilot","Implementation"],
+  context: ["Urban","Suburban","Rural","Mixed"],
+  audience: [
+    "Public (general drivers)",
+    "Rural residents/drivers",
+    "Urban commuters",
+    "EV owners",
+    "Legislators / governors’ staff",
+    "Industry (trucking / delivery)",
+    "Ride-hailing / taxi",
+    "Advocacy / equity groups",
+    "Media"
+  ],
+  capacity: ["High","Moderate","Limited"],
+  mechanism: [
+    // Flyers (variants)
+    "Flyer A – Problem → Solution (funding decline)",
+    "Flyer B – Road Ahead (transition roadmap)",
+    "Flyer C – How Mileage is Reported (mechanics)",
+    // Other mechanisms
+    "Brochure",
+    "Website FAQ",
+    "Short explainer video",
+    "Social media campaign",
+    "Town hall / public meeting",
+    "Stakeholder roundtable",
+    "Legislative briefing deck",
+    "Earned media (op-ed/press)"
+  ],
+  frame: [
+    "User-pay principle",
+    "Fairness (pay by use)",
+    "Sustainability / long-term funding",
+    "Equity and distributional impacts",
+    "Transparency / accountability (revenue use)",
+    "Modernization (future-ready funding)"
+  ],
+  privacyStyle: [
+    "Plain-language assurance",
+    "Technical explanation",
+    "Third-party audit + assurance",
+    "Not emphasized"
+  ],
+  politics: ["Supportive","Mixed/uncertain","Skeptical"],
+  evShare: ["Low","Moderate","High"]
+};
+
+/* ---------------------------
+   Placeholder coefficient model (final coefficients from Task 5)
+---------------------------- */
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+// Simple weight tables (hand-tuned for prototype realism)
+const W = {
+  stage: {Research:-0.05, Pilot:0.05, Implementation:0.08},
+  context: {Urban:0.04, Suburban:0.02, Rural:-0.03, Mixed:0.00},
+  capacity: {High:0.06, Moderate:0.02, Limited:-0.04},
+  politics: {Supportive:0.06, "Mixed/uncertain":0.00, Skeptical:-0.06},
+  evShare: {Low:0.00, Moderate:0.02, High:0.04},
+
+  // mechanism effect (clarity/reach)
+  mechanism: {
+    // Flyers: differentiate a bit
+    "Flyer A – Problem → Solution (funding decline)": 0.01,
+    "Flyer B – Road Ahead (transition roadmap)": 0.02,
+    "Flyer C – How Mileage is Reported (mechanics)": 0.04,
+
+    "Brochure": 0.01,
+    "Website FAQ": 0.03,
+    "Short explainer video": 0.06,
+    "Social media campaign": 0.02,
+    "Town hall / public meeting": 0.04,
+    "Stakeholder roundtable": 0.05,
+    "Legislative briefing deck": 0.03,
+    "Earned media (op-ed/press)": 0.01
+  },
+
+  // frame effect
+  frame_base: {
+    "User-pay principle": 0.02,
+    "Fairness (pay by use)": 0.01,
+    "Sustainability / long-term funding": 0.03,
+    "Equity and distributional impacts": 0.02,
+    "Transparency / accountability (revenue use)": 0.04,
+    "Modernization (future-ready funding)": 0.02
+  },
+
+  // privacy style affects trust and risk
+  privacyStyle: {
+    "Plain-language assurance": 0.03,
+    "Technical explanation": 0.01,
+    "Third-party audit + assurance": 0.05,
+    "Not emphasized": -0.03
+  },
+
+  // audience-specific adjustments
+  audience_understand: {
+    "Public (general drivers)": 0.00,
+    "Rural residents/drivers": -0.02,
+    "Urban commuters": 0.01,
+    "EV owners": 0.01,
+    "Legislators / governors’ staff": 0.03,
+    "Industry (trucking / delivery)": 0.01,
+    "Ride-hailing / taxi": 0.01,
+    "Advocacy / equity groups": 0.00,
+    "Media": 0.02
+  },
+  audience_trust: {
+    "Public (general drivers)": 0.00,
+    "Rural residents/drivers": -0.03,
+    "Urban commuters": 0.00,
+    "EV owners": 0.01,
+    "Legislators / governors’ staff": 0.00,
+    "Industry (trucking / delivery)": -0.01,
+    "Ride-hailing / taxi": -0.01,
+    "Advocacy / equity groups": 0.00,
+    "Media": -0.01
+  },
+  audience_support: {
+    "Public (general drivers)": 0.00,
+    "Rural residents/drivers": -0.03,
+    "Urban commuters": 0.00,
+    "EV owners": 0.01,
+    "Legislators / governors’ staff": 0.02,
+    "Industry (trucking / delivery)": -0.02,
+    "Ride-hailing / taxi": -0.01,
+    "Advocacy / equity groups": 0.00,
+    "Media": -0.01
+  }
+};
+
+// simple state adjustment index (placeholder)
+function stateAdj(stateCode){
+  const region = regionForState(stateCode);
+  if (region==="West") return 0.02;
+  if (region==="Northeast") return 0.01;
+  if (region==="South") return -0.01;
+  if (region==="Midwest") return -0.015;
+  return 0.0;
+}
+
+function regionForState(code){
+  for (const r of REGIONS){
+    if (r.states.includes(code)) return r.name;
+  }
+  return "—";
+}
+
+/* ---------------------------
+   Risk computation (prototype)
+   Add a small "flyer signature" so risk can vary by Flyer A/B/C.
+---------------------------- */
+const MECH_RISK_SIGNATURE = {
+  "Flyer A – Problem → Solution (funding decline)": {privacy:+0.01, doubletax:+0.02, rural:+0.01, complex:+0.02},
+  "Flyer B – Road Ahead (transition roadmap)": {privacy:0.00, doubletax:+0.01, rural:+0.01, complex:+0.01},
+  "Flyer C – How Mileage is Reported (mechanics)": {privacy:-0.03, doubletax:-0.01, rural:0.00, complex:-0.03},
+
+  "Brochure": {privacy:0.00, doubletax:0.00, rural:0.00, complex:+0.01},
+  "Website FAQ": {privacy:-0.01, doubletax:-0.01, rural:0.00, complex:-0.02},
+  "Short explainer video": {privacy:-0.01, doubletax:-0.01, rural:0.00, complex:-0.02},
+  "Social media campaign": {privacy:+0.01, doubletax:+0.01, rural:+0.01, complex:+0.01},
+  "Town hall / public meeting": {privacy:0.00, doubletax:0.00, rural:0.00, complex:0.00},
+  "Stakeholder roundtable": {privacy:0.00, doubletax:0.00, rural:0.00, complex:0.00},
+  "Legislative briefing deck": {privacy:0.00, doubletax:-0.01, rural:0.00, complex:+0.01},
+  "Earned media (op-ed/press)": {privacy:+0.01, doubletax:+0.01, rural:+0.01, complex:0.00}
+};
+
+function computeRisks(scn, probs){
+  const baseTrust = scn.baselineTrust/100;
+  const sig = MECH_RISK_SIGNATURE[scn.mechanism] || {privacy:0,doubletax:0,rural:0,complex:0};
+
+  const pPrivacy = clamp01(
+    0.28
+    + (scn.privacyStyle==="Not emphasized" ? 0.18 : 0)
+    + (scn.privacyStyle==="Technical explanation" ? 0.03 : 0)
+    + (scn.politics==="Skeptical" ? 0.07 : 0)
+    + (scn.audience==="Rural residents/drivers" ? 0.06 : 0)
+    + (scn.audience==="Media" ? 0.04 : 0)
+    - (scn.privacyStyle==="Third-party audit + assurance" ? 0.12 : 0)
+    - (scn.privacyStyle==="Plain-language assurance" ? 0.06 : 0)
+    - 0.10*baseTrust
+    + sig.privacy
+  );
+
+  const pDoubleTax = clamp01(
+    0.22
+    + (scn.frame==="Transparency / accountability (revenue use)" ? -0.05 : 0)
+    + (scn.frame==="Fairness (pay by use)" ? -0.02 : 0)
+    + (scn.politics==="Skeptical" ? 0.06 : 0)
+    - 0.06*probs.understand
+    + sig.doubletax
+  );
+
+  const pRuralBurden = clamp01(
+    0.20
+    + (scn.audience==="Rural residents/drivers" ? 0.14 : 0)
+    + (scn.context==="Rural" ? 0.10 : 0)
+    + (scn.frame==="Fairness (pay by use)" ? 0.02 : 0)
+    + (scn.frame==="Equity and distributional impacts" ? -0.04 : 0)
+    - 0.05*probs.understand
+    + sig.rural
+  );
+
+  const pComplex = clamp01(
+    0.18
+    + (scn.mechanism.includes("Website FAQ") ? -0.03 : 0)
+    + (scn.mechanism.includes("Short explainer video") ? -0.04 : 0)
+    + (scn.mechanism.includes("Flyer") ? 0.02 : 0)
+    + (scn.politics==="Skeptical" ? 0.03 : 0)
+    - 0.05*probs.understand
+    + sig.complex
+  );
+
+  const riskIndex = clamp01(0.35*pPrivacy + 0.25*pDoubleTax + 0.25*pRuralBurden + 0.15*pComplex);
+
+  let level = "Low";
+  let levelClass = "good";
+  if (riskIndex >= 0.55){ level = "High"; levelClass = "bad"; }
+  else if (riskIndex >= 0.40){ level = "Moderate"; levelClass = "warn"; }
+
+  const drivers = [
+    ["Privacy/tracking concern", pPrivacy],
+    ["Double taxation concern", pDoubleTax],
+    ["Rural burden concern", pRuralBurden],
+    ["Perceived complexity", pComplex]
+  ].sort((a,b)=>b[1]-a[1]);
+
+  return {
+    riskIndex,
+    level,
+    levelClass,
+    driver: drivers[0][0],
+    items: drivers.map(([k,v])=>({name:k, p:v}))
+  };
+}
+
+/* ---------------------------
+   Mitigation library (toolkit aligned)
+---------------------------- */
+function mitigationsFor(scn, risks){
+  const out = [];
+  const privacyP = risks.items.find(x=>x.name==="Privacy/tracking concern")?.p ?? 0;
+  if (privacyP >= 0.35){
+    out.push({
+      title: "Strengthen privacy assurance + make it visible",
+      text: "Use a plain-language privacy summary plus a one-page FAQ. Add an explicit ‘What we collect / What we do not collect’ table and clarify reporting options.",
+      module: "Myth-busting + Core concepts"
+    });
+    if (scn.privacyStyle !== "Third-party audit + assurance"){
+      out.push({
+        title: "Add third-party credibility signal",
+        text: "Reference an independent privacy/security assessment (or planned audit) and publish retention/access principles in plain language.",
+        module: "Risk mitigation"
+      });
+    }
+  }
+
+  const dtP = risks.items.find(x=>x.name==="Double taxation concern")?.p ?? 0;
+  if (dtP >= 0.30){
+    out.push({
+      title: "Clarify how RUC complements or replaces the gas tax",
+      text: "Use a simple ‘before vs after’ diagram and explicitly address transition mechanics (credits/offsets and how pilots work).",
+      module: "Core concepts + Templates"
+    });
+  }
+
+  const ruralP = risks.items.find(x=>x.name==="Rural burden concern")?.p ?? 0;
+  if (ruralP >= 0.30){
+    out.push({
+      title: "Tailor rural messaging (avoid blanket ‘fairness’ claims)",
+      text: "Use rural use-cases and explain how rate design and credits can mitigate disproportionate impacts. Pair with local reinvestment or transparency messaging.",
+      module: "Audience tailoring"
+    });
+  }
+
+  const cxP = risks.items.find(x=>x.name==="Perceived complexity")?.p ?? 0;
+  if (cxP >= 0.28){
+    out.push({
+      title: "Reduce complexity through sequencing + simplified visuals",
+      text: "Lead with a 60–90 second explainer + ‘3 things to know’ summary before detailed FAQs. In meetings, start with examples before mechanics.",
+      module: "Change management / sequencing"
+    });
+  }
+
+  if (scn.politics==="Skeptical" || scn.stage==="Implementation"){
+    out.push({
+      title: "Coordinate messages across DOT + Governor’s office + revenue partners",
+      text: "Align definitions and talking points; use a shared myth-busting sheet and a rapid-response protocol for misinformation.",
+      module: "Interagency coordination"
+    });
+  }
+
+  return out.slice(0,5);
+}
+
+/* ---------------------------
+   Suggested evaluation measures + survey items
+---------------------------- */
+function evalMeasuresFor(scn){
+  const base = [
+    "Clarity: “How clear was the explanation of what RUC is?” (1–5)",
+    "Trust: “How confident are you that privacy will be protected?” (1–5)",
+    "Support: “To what extent do you support exploring or implementing RUC?” (1–5)",
+    "Concern persistence: % selecting privacy/double-tax/rural-burden after exposure",
+    "Reach/engagement: web clicks, video completion rate, event attendance, earned media tone"
+  ];
+  if (scn.mechanism==="Social media campaign"){
+    base.push("Engagement: shares/comments sentiment; click-through to FAQ");
+  }
+  if (scn.mechanism==="Town hall / public meeting" || scn.mechanism==="Stakeholder roundtable"){
+    base.push("Meeting outcomes: top concerns; changes in understanding pre/post (quick poll)");
+  }
+  if (scn.audience.includes("Legislators")){
+    base.push("Policy readiness: perceived feasibility; common questions; requested follow-ups");
+  }
+  return uniq(base);
+}
+
+function surveyQuestionsFor(scn){
+  const qs = [
+    "After reviewing this information, how would you define a Road Usage Charge (RUC) in your own words?",
+    "How clear was the explanation of how RUC relates to (or could replace) the gas tax?",
+    "How concerned are you about being tracked or having your location monitored under a RUC program?",
+    "How confident are you that personal data would be protected?",
+    "What is your biggest remaining concern after reviewing the message?"
+  ];
+  if (scn.audience==="Rural residents/drivers"){
+    qs.push("To what extent do you think a RUC would affect rural drivers compared to urban drivers?");
+  }
+  if (scn.audience==="EV owners" || scn.evShare==="High"){
+    qs.push("How fair do you consider current road funding approaches for EV drivers compared to gas vehicles?");
+  }
+  if (scn.audience.includes("Legislators")){
+    qs.push("What additional information would you need to evaluate a RUC proposal (rates, privacy safeguards, equity impacts, administration)?");
+  }
+  if (scn.mechanism==="Short explainer video"){
+    qs.push("Did the video change your understanding of why alternatives to the gas tax are being explored?");
+  }
+  return uniq(qs);
+}
+
+/* ---------------------------
+   UI utilities
+---------------------------- */
+function uniq(arr){ return Array.from(new Set(arr)); }
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2000);
+}
+function escapeHtml(s){
+  return (s ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function setSelectOptions(id, values){
+  const el = document.getElementById(id);
+  el.innerHTML = "";
+  values.forEach(v=>{
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = v;
+    el.appendChild(o);
+  });
+}
+
+/* ---------------------------
+   Initialize inputs (populate once, bind once, reset via defaults)
+---------------------------- */
+function setDefaults(){
+  document.getElementById("state").value = "OR";
+  document.getElementById("region").value = regionForState("OR");
+  document.getElementById("stage").value = "Pilot";
+  document.getElementById("context").value = "Mixed";
+  document.getElementById("audience").value = "Public (general drivers)";
+  document.getElementById("capacity").value = "Moderate";
+  document.getElementById("mechanism").value = "Flyer C – How Mileage is Reported (mechanics)";
+  document.getElementById("frame").value = "Transparency / accountability (revenue use)";
+  document.getElementById("privacyStyle").value = "Third-party audit + assurance";
+  document.getElementById("politics").value = "Mixed/uncertain";
+  document.getElementById("evShare").value = "Moderate";
+  document.getElementById("baselineTrust").value = "55";
+  document.getElementById("baselineTrustVal").textContent = "55";
+}
+
+function init(){
+  const allStates = REGIONS.flatMap(r=>r.states).sort();
+  setSelectOptions("state", allStates);
+  setSelectOptions("region", REGIONS.map(r=>r.name));
+
+  setSelectOptions("stage", OPT.stage);
+  setSelectOptions("context", OPT.context);
+  setSelectOptions("audience", OPT.audience);
+  setSelectOptions("capacity", OPT.capacity);
+  setSelectOptions("mechanism", OPT.mechanism);
+  setSelectOptions("frame", OPT.frame);
+  setSelectOptions("privacyStyle", OPT.privacyStyle);
+  setSelectOptions("politics", OPT.politics);
+  setSelectOptions("evShare", OPT.evShare);
+
+  setDefaults();
+
+  // bind once
+  const ids = ["state","region","stage","context","audience","capacity","mechanism","frame","privacyStyle","politics","evShare"];
+  ids.forEach(id=>{
+    document.getElementById(id).addEventListener("change", ()=>{
+      if (id==="state"){
+        const st = document.getElementById("state").value;
+        document.getElementById("region").value = regionForState(st);
+      }
+      if (id==="region"){
+        const rname = document.getElementById("region").value;
+        const r = REGIONS.find(x=>x.name===rname);
+        if (r) document.getElementById("state").value = r.states[0];
+      }
+      computeAndRender();
+    });
+  });
+
+  const trust = document.getElementById("baselineTrust");
+  trust.addEventListener("input", ()=>{
+    document.getElementById("baselineTrustVal").textContent = trust.value;
+    computeAndRender();
+  });
+
+  document.getElementById("btnReset").addEventListener("click", ()=>{
+    setDefaults();
+    computeAndRender();
+    toast("Scenario reset.");
+  });
+
+  document.getElementById("btnCopyScenario").addEventListener("click", copyScenario);
+  document.getElementById("btnCopyOutputs").addEventListener("click", copyOutputs);
+
+  computeAndRender();
+}
+
+/* ---------------------------
+   Core probability computation
+---------------------------- */
+function computeProbs(scn){
+  const xbU =
+    -0.05
+    + stateAdj(scn.state)
+    + (W.stage[scn.stage] ?? 0)
+    + (W.context[scn.context] ?? 0)
+    + (W.capacity[scn.capacity] ?? 0)
+    + (W.politics[scn.politics] ?? 0)
+    + (W.evShare[scn.evShare] ?? 0)
+    + (W.mechanism[scn.mechanism] ?? 0)
+    + (W.frame_base[scn.frame] ?? 0)
+    + (W.audience_understand[scn.audience] ?? 0)
+    + 0.0015*(scn.baselineTrust - 50);
+
+  const pU = sigmoid(1.8*xbU + 0.1);
+
+  const xbT =
+    -0.08
+    + stateAdj(scn.state)
+    + (W.politics[scn.politics] ?? 0)
+    + (W.privacyStyle[scn.privacyStyle] ?? 0)
+    + (W.mechanism[scn.mechanism] ?? 0)*0.25
+    + (W.frame_base[scn.frame] ?? 0)*0.5
+    + (W.audience_trust[scn.audience] ?? 0)
+    + 0.004*(scn.baselineTrust - 50);
+
+  const pT = sigmoid(1.9*xbT + 0.05);
+
+  const xbS =
+    -0.10
+    + stateAdj(scn.state)
+    + (W.stage[scn.stage] ?? 0)
+    + (W.politics[scn.politics] ?? 0)
+    + (W.frame_base[scn.frame] ?? 0)*0.7
+    + (W.audience_support[scn.audience] ?? 0)
+    + 0.55*clamp01(pU) + 0.65*clamp01(pT)
+    - (scn.mechanism.includes("Flyer A") ? 0.01 : 0);
+
+  const pS = sigmoid(1.6*xbS - 0.05);
+
+  return {understand: clamp01(pU), trust: clamp01(pT), support: clamp01(pS)};
+}
+
+// CI proxy
+function ciFor(p, scn){
+  const base = 0.08;
+  const mechTight =
+    (scn.mechanism==="Website FAQ" || scn.mechanism==="Short explainer video" || scn.mechanism.includes("Flyer C"))
+      ? -0.01 : 0.01;
+  const capTight = scn.capacity==="High" ? -0.01 : (scn.capacity==="Limited" ? 0.02 : 0);
+  const w = base + mechTight + capTight;
+  return [clamp01(p - w), clamp01(p + w)];
+}
+
+/* ---------------------------
+   Render helpers
+---------------------------- */
+function pct(p){ return `${Math.round(100*p)}%`; }
+
+function renderScenarioChips(scn){
+  const wrap = document.getElementById("scenarioChips");
+  wrap.innerHTML = "";
+  const items = [
+    ["State", scn.state],
+    ["Stage", scn.stage],
+    ["Context", scn.context],
+    ["Audience", scn.audience],
+    ["Mechanism", scn.mechanism],
+    ["Frame", scn.frame],
+    ["Privacy", scn.privacyStyle],
+    ["Politics", scn.politics],
+    ["Trust", `${scn.baselineTrust}/100`]
+  ];
+  items.forEach(([k,v])=>{
+    const el = document.createElement("span");
+    el.className = "chip";
+    el.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(v)}</b>`;
+    wrap.appendChild(el);
+  });
+}
+
+function renderBars(p, id){
+  document.getElementById(id).style.width = `${Math.round(100*p)}%`;
+}
+
+function pillForRiskLevel(level){
+  if (level==="High") return {cls:"bad", txt:"Risk: High"};
+  if (level==="Moderate") return {cls:"warn", txt:"Risk: Moderate"};
+  return {cls:"good", txt:"Risk: Low"};
+}
+
+function renderRiskList(risks){
+  const wrap = document.getElementById("riskList");
+  wrap.innerHTML = "";
+  risks.items.forEach(it=>{
+    const div = document.createElement("div");
+    div.style.margin = "6px 0";
+    div.innerHTML = `<span class="pill">${escapeHtml(it.name)}</span> <span class="mono">${pct(it.p)}</span>`;
+    wrap.appendChild(div);
+  });
+}
+
+function renderMitigations(items){
+  const wrap = document.getElementById("mitigationList");
+  wrap.innerHTML = "";
+  if (!items.length){
+    wrap.innerHTML = `<div class="muted">No mitigations flagged under current thresholds.</div>`;
+    return;
+  }
+  items.forEach(m=>{
+    const el = document.createElement("div");
+    el.className = "rec-item";
+    el.innerHTML = `
+      <b>${escapeHtml(m.title)}</b>
+      <div class="muted">${escapeHtml(m.text)}</div>
+      <div style="margin-top:6px"><span class="pill">${escapeHtml(m.module)}</span></div>
+    `;
+    wrap.appendChild(el);
+  });
+}
+
+function renderListBullets(id, arr){
+  const wrap = document.getElementById(id);
+  wrap.innerHTML = "";
+  const ul = document.createElement("ul");
+  ul.style.margin = "0";
+  ul.style.paddingLeft = "18px";
+  arr.forEach(x=>{
+    const li = document.createElement("li");
+    li.style.margin = "6px 0";
+    li.textContent = x;
+    ul.appendChild(li);
+  });
+  wrap.appendChild(ul);
+}
+
+/* ---------------------------
+   Flyer preview logic
+---------------------------- */
+function isFlyer(mech){ return mech.startsWith("Flyer "); }
+
+function renderFlyerPreview(mech){
+  const box = document.getElementById("flyerPreviewBox");
+  if (!isFlyer(mech)){
+    box.style.display = "none";
+    return;
+  }
+  const meta = MEDIA.flyers[mech];
+  box.style.display = "block";
+
+  const img = document.getElementById("flyerImg");
+  img.src = meta?.src || "";
+  img.onerror = () => { img.alt = "Could not load flyer image. Check the filename/path in MEDIA.flyers."; };
+
+  const tagsWrap = document.getElementById("flyerMeta");
+  tagsWrap.innerHTML = "";
+  (meta?.tags || []).forEach(t=>{
+    const s = document.createElement("span");
+    s.className = "pill";
+    s.textContent = t;
+    tagsWrap.appendChild(s);
+  });
+
+  document.getElementById("flyerNote").textContent = meta?.note || "";
+}
+
+/* ---------------------------
+   Comparison mode (ALWAYS ON)
+---------------------------- */
+const COMPARE_SET = [
+  "Flyer A – Problem → Solution (funding decline)",
+  "Flyer B – Road Ahead (transition roadmap)",
+  "Flyer C – How Mileage is Reported (mechanics)",
+  "Brochure",
+  "Website FAQ",
+  "Short explainer video",
+  "Town hall / public meeting"
+];
+
+function renderComparisonTable(baseScenario){
+  const box = document.getElementById("compareBox");
+  box.style.display = "block";
+
+  const tbody = document.getElementById("compareTbody");
+  tbody.innerHTML = "";
+
+  COMPARE_SET.forEach(mech=>{
+    const scn = {...baseScenario, mechanism: mech};
+    const probs = computeProbs(scn);
+    const risks = computeRisks(scn, probs);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="clickable" data-mech="${escapeHtml(mech)}">${escapeHtml(mech)}</span></td>
+      <td class="mono">${pct(probs.understand)}</td>
+      <td class="mono">${pct(probs.trust)}</td>
+      <td class="mono">${pct(probs.support)}</td>
+      <td><span class="pill ${risks.levelClass}">${escapeHtml(risks.level)}</span></td>
+      <td class="small">${escapeHtml(risks.driver)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // click-to-select
+  tbody.querySelectorAll(".clickable").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const mech = el.getAttribute("data-mech");
+      document.getElementById("mechanism").value = mech;
+      computeAndRender();
+      toast(`Mechanism set to: ${mech}`);
+    });
+  });
+}
+
+/* ---------------------------
+   Main compute + render
+---------------------------- */
+function currentScenario(){
+  return {
+    state: document.getElementById("state").value,
+    region: document.getElementById("region").value,
+    stage: document.getElementById("stage").value,
+    context: document.getElementById("context").value,
+    audience: document.getElementById("audience").value,
+    capacity: document.getElementById("capacity").value,
+    mechanism: document.getElementById("mechanism").value,
+    frame: document.getElementById("frame").value,
+    privacyStyle: document.getElementById("privacyStyle").value,
+    politics: document.getElementById("politics").value,
+    evShare: document.getElementById("evShare").value,
+    baselineTrust: Number(document.getElementById("baselineTrust").value)
+  };
+}
+
+function computeAndRender(){
+  const scn = currentScenario();
+
+  // preview if flyer
+  renderFlyerPreview(scn.mechanism);
+
+
+
+  // main probs + CI
+  const probs = computeProbs(scn);
+  const ciU = ciFor(probs.understand, scn);
+  const ciT = ciFor(probs.trust, scn);
+  const ciS = ciFor(probs.support, scn);
+
+  document.getElementById("pUnderstand").textContent = pct(probs.understand);
+  document.getElementById("pTrust").textContent = pct(probs.trust);
+  document.getElementById("pSupport").textContent = pct(probs.support);
+
+  renderBars(probs.understand, "barUnderstand");
+  renderBars(probs.trust, "barTrust");
+  renderBars(probs.support, "barSupport");
+
+  document.getElementById("ciUnderstand").textContent = `CI: ${pct(ciU[0])}–${pct(ciU[1])}`;
+  document.getElementById("ciTrust").textContent = `CI: ${pct(ciT[0])}–${pct(ciT[1])}`;
+  document.getElementById("ciSupport").textContent = `CI: ${pct(ciS[0])}–${pct(ciS[1])}`;
+
+  // risks
+  const risks = computeRisks(scn, probs);
+  const pill = pillForRiskLevel(risks.level);
+
+  const overall = document.getElementById("riskOverallPill");
+  overall.className = `pill ${pill.cls}`;
+  overall.textContent = pill.txt;
+
+  const driver = document.getElementById("riskDriverPill");
+  driver.className = "pill";
+  driver.textContent = `Top driver: ${risks.driver}`;
+
+  renderRiskList(risks);
+
+  // mitigations
+  const mit = mitigationsFor(scn, risks);
+  renderMitigations(mit);
+
+  // eval + survey
+  renderListBullets("evalMeasures", evalMeasuresFor(scn));
+  renderListBullets("surveyQs", surveyQuestionsFor(scn));
+
+  // comparison (always)
+  renderComparisonTable(scn);
+}
+
+/* ---------------------------
+   Copy helpers
+---------------------------- */
+function copyScenario(){
+  const scn = currentScenario();
+  const text =
+`RUC-CERS Scenario
+- State: ${scn.state} (${scn.region})
+- Stage: ${scn.stage}
+- Community context: ${scn.context}
+- Audience: ${scn.audience}
+- Agency capacity: ${scn.capacity}
+- Mechanism: ${scn.mechanism}
+- Frame: ${scn.frame}
+- Privacy style: ${scn.privacyStyle}
+- Political climate: ${scn.politics}
+- EV salience: ${scn.evShare}
+- Baseline trust: ${scn.baselineTrust}/100`;
+  navigator.clipboard.writeText(text)
+    .then(()=>toast("Scenario copied to clipboard."))
+    .catch(()=>toast("Clipboard blocked. Copy manually from the page."));
+}
+
+function copyOutputs(){
+  const scn = currentScenario();
+  const probs = computeProbs(scn);
+  const risks = computeRisks(scn, probs);
+  const mit = mitigationsFor(scn, risks);
+
+  const text =
+`RUC-CERS Outputs (Prototype)
+Predicted probabilities:
+- P(Clear understanding): ${pct(probs.understand)}
+- P(Trust/comfort): ${pct(probs.trust)}
+- P(Support/participate): ${pct(probs.support)}
+
+Risk profile:
+- Risk level: ${risks.level} (index ~ ${Math.round(100*risks.riskIndex)} / 100)
+- Top driver: ${risks.driver}
+
+Recommended mitigations:
+${mit.map((m,i)=>`  ${i+1}) ${m.title} [${m.module}]`).join("\n")}
+`;
+  navigator.clipboard.writeText(text)
+    .then(()=>toast("Outputs copied to clipboard."))
+    .catch(()=>toast("Clipboard blocked. Copy manually from the page."));
+}
+
+// boot
+init();
+</script>
+</body>
+</html>
